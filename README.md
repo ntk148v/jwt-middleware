@@ -1,2 +1,3 @@
-# jwt-middleware
-JWT-based Authentication Middleware
+# JWT Middleware
+
+A simple JWT-based Authentication Middleware
