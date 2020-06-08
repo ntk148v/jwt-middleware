@@ -30,11 +30,12 @@ import (
 
 const bearerFormat string = "Bearer %s"
 
+// API controls a set of handlers
 type API struct {
 	token *jwt.Token
 }
 
-func NewAPI() (*API, error) {
+func newAPI() (*API, error) {
 	pwd, _ := os.Getwd()
 	token, err := jwt.NewToken(jwt.Options{
 		PrivateKeyLocation: path.Join(pwd, "keys/test.rsa"),
@@ -49,6 +50,7 @@ func NewAPI() (*API, error) {
 	return &API{token: token}, nil
 }
 
+// IssueToken returns a header if the given credentials is valid.
 func (a *API) IssueToken(w http.ResponseWriter, req *http.Request) {
 	user, pass, _ := req.BasicAuth()
 	if user != "test" || pass != "test" {
@@ -63,17 +65,20 @@ func (a *API) IssueToken(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	w.Header().Add("Authorization", fmt.Sprintf(bearerFormat, tokenString))
+	fmt.Fprint(w, "Nice, get your token header")
 }
 
-func (A *API) Secret(w http.ResponseWriter, req *http.Request) {
-	fmt.Fprint(w, "Here is the secret")
+// Secret is the secret handler require an authenticated request
+func (a *API) Secret(w http.ResponseWriter, req *http.Request) {
+	data := req.Context().Value("user").(map[string]interface{})
+	fmt.Fprintf(w, "Hello %s, here is the secret!", data["user"].(string))
 }
 
 func main() {
 	var port = flag.Int("port", 3000, "port to listen on")
 	flag.Parse()
 	router := mux.NewRouter()
-	api, err := NewAPI()
+	api, err := newAPI()
 	if err != nil {
 		log.Fatal(err)
 	}
