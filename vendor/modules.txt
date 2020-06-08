@@ -2,3 +2,6 @@
 ## explicit
 github.com/dgrijalva/jwt-go
 github.com/dgrijalva/jwt-go/request
+# github.com/gorilla/mux v1.7.4
+## explicit
+github.com/gorilla/mux
