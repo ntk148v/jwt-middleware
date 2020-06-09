@@ -152,6 +152,16 @@ func (t *Token) RevokeToken(id string) error {
 	return t.store.Revoke(id)
 }
 
+// RefreshToken regenerate the token after check the given token
+// string is valid.
+func (t *Token) RefreshToken(tokenString string) (string, error) {
+	tokenInfo, err := t.validateJWT(tokenString)
+	if err != nil {
+		return "", err
+	}
+	return t.GenerateToken(tokenInfo.Data)
+}
+
 func (t *Token) validateJWT(tokenString string) (*TokenInfo, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Validate the algorithm is what you expect
