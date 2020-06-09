@@ -22,14 +22,14 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
-	"github.com/dgrijalva/jwt-go/request"
+	jwtGo "github.com/dgrijalva/jwt-go"
+	jwtGoRequest "github.com/dgrijalva/jwt-go/request"
 )
 
 type Token struct {
 	privateKey    interface{}
 	publicKey     interface{}
-	signingMethod jwt.SigningMethod
+	signingMethod jwtGo.SigningMethod
 	store         Store
 	options       Options
 }
@@ -44,13 +44,13 @@ type TokenInfo struct {
 type Claims struct {
 	// Standard claims are the standard jwt claims from the ietf standard
 	// https://tools.ietf.org/html/rfc7519
-	*jwt.StandardClaims
+	*jwtGo.StandardClaims
 	Data map[string]interface{} `json:"data,omitempty"`
 }
 
 // NewToken constructs a new Token instance
 func NewToken(o Options, s Store) (*Token, error) {
-	signingMethod := jwt.GetSigningMethod(o.SigningMethod)
+	signingMethod := jwtGo.GetSigningMethod(o.SigningMethod)
 
 	var (
 		privateKey interface{}
@@ -59,13 +59,13 @@ func NewToken(o Options, s Store) (*Token, error) {
 	)
 
 	switch signingMethod {
-	case jwt.SigningMethodHS256, jwt.SigningMethodHS384, jwt.SigningMethodHS512:
+	case jwtGo.SigningMethodHS256, jwtGo.SigningMethodHS384, jwtGo.SigningMethodHS512:
 		if o.HMACKey == nil {
 			return nil, ErrNoHMACKey
 		}
 		privateKey = o.HMACKey
 		publicKey = o.HMACKey
-	case jwt.SigningMethodRS256, jwt.SigningMethodRS384, jwt.SigningMethodRS512:
+	case jwtGo.SigningMethodRS256, jwtGo.SigningMethodRS384, jwtGo.SigningMethodRS512:
 		if o.PrivateKeyLocation == "" || o.PublicKeyLocation == "" {
 			return nil, ErrNoRSAKey
 		}
@@ -73,7 +73,7 @@ func NewToken(o Options, s Store) (*Token, error) {
 		if err != nil {
 			return nil, err
 		}
-	case jwt.SigningMethodES256, jwt.SigningMethodES384, jwt.SigningMethodES512:
+	case jwtGo.SigningMethodES256, jwtGo.SigningMethodES384, jwtGo.SigningMethodES512:
 		if o.PrivateKeyLocation == "" || o.PublicKeyLocation == "" {
 			return nil, ErrNoECKey
 		}
@@ -99,7 +99,7 @@ func NewToken(o Options, s Store) (*Token, error) {
 // GetToken extracts a token string from the header.
 func (t *Token) GetToken(req *http.Request) (string, error) {
 	if t.options.IsBearerToken {
-		return request.AuthorizationHeaderExtractor.ExtractToken(req)
+		return jwtGoRequest.AuthorizationHeaderExtractor.ExtractToken(req)
 	}
 	header := req.Header.Get(t.options.Header)
 	return header, nil
@@ -113,14 +113,14 @@ func (t *Token) GenerateToken(data map[string]interface{}) (string, error) {
 		return "", fmt.Errorf("JWT: unable to generate JWT id, %s", err)
 	}
 	claims := Claims{
-		StandardClaims: &jwt.StandardClaims{
+		StandardClaims: &jwtGo.StandardClaims{
 			ExpiresAt: time.Now().Add(t.options.TTL).Unix(),
 			IssuedAt:  time.Now().Unix(),
 			Id:        id,
 		},
 		Data: data,
 	}
-	unsigned := jwt.NewWithClaims(t.signingMethod, claims)
+	unsigned := jwtGo.NewWithClaims(t.signingMethod, claims)
 	return unsigned.SignedString(t.privateKey)
 }
 
@@ -163,7 +163,7 @@ func (t *Token) RefreshToken(tokenString string) (string, error) {
 }
 
 func (t *Token) validateJWT(tokenString string) (*TokenInfo, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwtGo.Parse(tokenString, func(token *jwtGo.Token) (interface{}, error) {
 		// Validate the algorithm is what you expect
 		if token.Method.Alg() != t.signingMethod.Alg() {
 			return nil, ErrUnexpectedSigningMethod
@@ -171,15 +171,15 @@ func (t *Token) validateJWT(tokenString string) (*TokenInfo, error) {
 		return t.publicKey, nil
 	})
 	if err != nil {
-		if e, ok := err.(*jwt.ValidationError); ok {
+		if e, ok := err.(*jwtGo.ValidationError); ok {
 			switch {
-			case e.Errors&jwt.ValidationErrorMalformed != 0:
+			case e.Errors&jwtGo.ValidationErrorMalformed != 0:
 				// Token is malformed
 				return nil, ErrTokenMalformed
-			case e.Errors&jwt.ValidationErrorExpired != 0:
+			case e.Errors&jwtGo.ValidationErrorExpired != 0:
 				// Token is expired
 				return nil, ErrTokenExpired
-			case e.Errors&jwt.ValidationErrorNotValidYet != 0:
+			case e.Errors&jwtGo.ValidationErrorNotValidYet != 0:
 				// Token is not active yet
 				return nil, ErrTokenNotActive
 			case e.Inner != nil:
@@ -194,7 +194,7 @@ func (t *Token) validateJWT(tokenString string) (*TokenInfo, error) {
 		return nil, ErrInvalidToken
 	}
 
-	claims := token.Claims.(jwt.MapClaims)
+	claims := token.Claims.(jwtGo.MapClaims)
 	if claims["jti"] == nil || claims["iat"] == nil {
 		return nil, ErrInvalidToken
 	}
@@ -241,11 +241,11 @@ func getRSAKeys(privateKeyLocation, publicKeyLocation string) (interface{}, inte
 	if err != nil {
 		return nil, nil, err
 	}
-	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(privateKeyContent)
+	privateKey, err := jwtGo.ParseRSAPrivateKeyFromPEM(privateKeyContent)
 	if err != nil {
 		return nil, nil, fmt.Errorf("JWT: failed to generate a private RSA key, %s", err)
 	}
-	publicKey, err := jwt.ParseRSAPublicKeyFromPEM(publicKeyContent)
+	publicKey, err := jwtGo.ParseRSAPublicKeyFromPEM(publicKeyContent)
 	if err != nil {
 		return nil, nil, fmt.Errorf("JWT: failed to generate a public RSA key, %s", err)
 	}
@@ -261,11 +261,11 @@ func getECKeys(privateKeyLocation, publicKeyLocation string) (interface{}, inter
 	if err != nil {
 		return nil, nil, err
 	}
-	privateKey, err := jwt.ParseECPrivateKeyFromPEM(privateKeyContent)
+	privateKey, err := jwtGo.ParseECPrivateKeyFromPEM(privateKeyContent)
 	if err != nil {
 		return nil, nil, fmt.Errorf("JWT: failed to generate a private EC key, %s", err)
 	}
-	publicKey, err := jwt.ParseECPublicKeyFromPEM(publicKeyContent)
+	publicKey, err := jwtGo.ParseECPublicKeyFromPEM(publicKeyContent)
 	if err != nil {
 		return nil, nil, fmt.Errorf("JWT: failed to generate a public EC key, %s", err)
 	}
