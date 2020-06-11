@@ -136,10 +136,10 @@ func (t *Token) CheckToken(tokenString string) (map[string]interface{}, error) {
 	return t.store.Check(tokenInfo.Id, tokenInfo.IssuedAt)
 }
 
-// ValidateJWT validates whether a jwt string is valid.
+// ValidateToken validates whether a jwt string is valid.
 // If so, it returns data included in the token and nil error.
 func (t *Token) ValidateToken(tokenString string) (*TokenInfo, error) {
-	return t.ValidateToken(tokenString)
+	return t.validateJWT(tokenString)
 }
 
 // RevokeToken revokes a token which is no longer in use.
