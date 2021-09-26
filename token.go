@@ -22,8 +22,8 @@ import (
 	"net/http"
 	"time"
 
-	jwtGo "github.com/dgrijalva/jwt-go"
-	jwtGoRequest "github.com/dgrijalva/jwt-go/request"
+	jwtGo "github.com/golang-jwt/jwt/v4"
+	jwtGoRequest "github.com/golang-jwt/jwt/v4/request"
 )
 
 type Token struct {
@@ -42,9 +42,14 @@ type TokenInfo struct {
 
 // Claims holds the claims encoded in a JWT
 type Claims struct {
-	// Standard claims are the standard jwt claims from the ietf standard
-	// https://tools.ietf.org/html/rfc7519
-	*jwtGo.StandardClaims
+	// RegisteredClaims are a structured version of the JWT Claims Set,
+	// restricted to Registered Claim Names, as referenced at
+	// https://datatracker.ietf.org/doc/html/rfc7519#section-4.1
+	//
+	// This type can be used on its own, but then additional private and
+	// public claims embedded in the JWT will not be parsed. The typical usecase
+	// therefore is to embedded this in a user-defined claim type.
+	*jwtGo.RegisteredClaims
 	Data map[string]interface{} `json:"data,omitempty"`
 }
 
@@ -113,10 +118,10 @@ func (t *Token) GenerateToken(data map[string]interface{}) (string, error) {
 		return "", fmt.Errorf("JWT: unable to generate JWT id, %s", err)
 	}
 	claims := Claims{
-		StandardClaims: &jwtGo.StandardClaims{
-			ExpiresAt: time.Now().Add(t.options.TTL).Unix(),
-			IssuedAt:  time.Now().Unix(),
-			Id:        id,
+		RegisteredClaims: &jwtGo.RegisteredClaims{
+			ExpiresAt: jwtGo.NewNumericDate(time.Now().Add(t.options.TTL)),
+			IssuedAt:  jwtGo.NewNumericDate(time.Now()),
+			ID:        id,
 		},
 		Data: data,
 	}

@@ -1,7 +1,7 @@
-# github.com/dgrijalva/jwt-go v3.2.0+incompatible
+# github.com/golang-jwt/jwt/v4 v4.1.0
 ## explicit
-github.com/dgrijalva/jwt-go
-github.com/dgrijalva/jwt-go/request
+github.com/golang-jwt/jwt/v4
+github.com/golang-jwt/jwt/v4/request
 # github.com/gorilla/mux v1.7.4
 ## explicit
 github.com/gorilla/mux
